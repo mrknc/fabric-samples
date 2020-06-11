@@ -30,7 +30,7 @@
 # this may be commented out to resolve installed version of tools if desired
 export PATH=${PWD}/../bin:${PWD}:$PATH
 export FABRIC_CFG_PATH=${PWD}
-export VERBOSE=false
+export VERBOSE=true
 
 # Print the usage message
 function printHelp() {
@@ -366,7 +366,7 @@ function generateCerts() {
   mkdir crypto-config
   docker run -v `pwd`:/mnt smartbft/fabric-tools cryptogen generate --config=/mnt/crypto-config.yaml --output /mnt/crypto-config
   echo "Changing permission to crypto-config folder"
-  sudo chown -R `whoami`:`whoami` crypto-config
+  sudo chown -R `whoami` crypto-config
   res=$?
   set +x
   if [ $res -ne 0 ]; then
@@ -450,7 +450,7 @@ function generateChannelArtifacts() {
     exit 1
   fi
 
-chown -R `whoami`:`whoami` channel-artifacts
+sudo chown -R `whoami` channel-artifacts
 
   echo
   echo "#################################################################"
@@ -465,7 +465,7 @@ chown -R `whoami`:`whoami` channel-artifacts
     exit 1
   fi
 
-   chown -R `whoami`:`whoami` channel-artifacts
+   sudo chown -R `whoami` channel-artifacts
 
 
   echo
@@ -481,7 +481,7 @@ chown -R `whoami`:`whoami` channel-artifacts
     exit 1
   fi
 
-   chown -R `whoami`:`whoami` channel-artifacts
+   sudo chown -R `whoami` channel-artifacts
 
 
   echo
@@ -500,7 +500,7 @@ chown -R `whoami`:`whoami` channel-artifacts
   echo
 }
 
-   chown -R `whoami`:`whoami` channel-artifacts
+   sudo chown -R `whoami` channel-artifacts
 
 
 # Obtain the OS and Architecture string that will be used to select the correct
