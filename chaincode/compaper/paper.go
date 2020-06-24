@@ -20,13 +20,13 @@ type Paper struct {
 	Paper        string `json:"paper"`
 	Owner        string `json:"owner"`
 	Issue        string `json:"time"` // TODO this doesn't seem right
-	Maturity     string `json:"maturity`
+	Maturity     string `json:"maturity"`
 	FaceValue    string `json:"faceValue"` // TODO this doesn't seem right
 	CurrentState string `json:"currentState"`
 }
 
-func (p Paper) compositeKey() string {
-	return "papernet" + p.Issuer + p.Paper
+func compositeKey(issuer, paper string) string {
+	return "papernet" + issuer + paper
 }
 
 // Define the Smart Contract structure
@@ -60,26 +60,64 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 
 func (s *SmartContract) issuePaper(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
 	if len(args) != 5 {
-		return shim.Error("Incorrect number of arguments. Expecting 5")
+		return shim.Error("Incorrect number of arguments. Expecting 5: issuer, paper, issue date, maturity date, face value")
 	}
 
 	// TODO they appear not to do any checks whatsoever: what if there is a paper already issued?
 	// assigned values should make sense, like dates, face value not being negative
-	paper := Paper{Issuer: args[0], Paper: args[1], Owner: args[0],
+	p := Paper{Issuer: args[0], Paper: args[1], Owner: args[0],
 		Issue: args[2], Maturity: args[3], FaceValue: args[4], CurrentState: isISSUED}
 
-	paperAsBytes, _ := json.Marshal(paper)
-	fmt.Println(paper)
-	APIstub.PutState(paper.compositeKey(), paperAsBytes)
+	paperAsBytes, _ := json.Marshal(p)
+	// fmt.Println("issuing ", p)
+	// fmt.Println("key ", compositeKey(p.Issuer, p.Paper))
+	APIstub.PutState(compositeKey(p.Issuer, p.Paper), paperAsBytes)
 
 	return shim.Success(nil)
 }
 
 func (s *SmartContract) redeemPaper(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 3 {
+		return shim.Error("Incorrect number of arguments. Expecting 3: issuer, paper, redeeming owner")
+	}
+	key := compositeKey(args[0], args[1])
+	// fmt.Println("buying ", args)
+	// fmt.Println("key", key)
+	paperAsBytes, _ := APIstub.GetState(key) //TODO err handling
+	p := Paper{}
+	json.Unmarshal(paperAsBytes, &p)
+	fmt.Println(p)
+	if p.Owner != args[2] {
+		return shim.Error("Expected owner: " + args[2] + " actual: " + p.Owner)
+	}
+	if p.CurrentState == isREDEEMED {
+		return shim.Error("Paper " + key + " was already redeemed.")
+	}
+	p.Owner = p.Issuer
+	p.CurrentState = isREDEEMED
+	paperAsBytes, _ = json.Marshal(p)
+	APIstub.PutState(key, paperAsBytes)
 	return shim.Success(nil)
 }
 
 func (s *SmartContract) buyPaper(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 4 {
+		return shim.Error("Incorrect number of arguments. Expecting 4: issuer, paper, owner, new owner")
+	}
+	key := compositeKey(args[0], args[1])
+	fmt.Println("buying ", args)
+	fmt.Println("key", key)
+	paperAsBytes, _ := APIstub.GetState(key) //TODO err handling
+	p := Paper{}
+	json.Unmarshal(paperAsBytes, &p)
+	fmt.Println(p)
+	if p.Owner != args[2] {
+		return shim.Error("Expected owner: " + args[2] + " actual: " + p.Owner)
+	}
+	p.Owner = args[3]
+	p.CurrentState = isTRADING
+	paperAsBytes, _ = json.Marshal(p)
+	APIstub.PutState(key, paperAsBytes)
 	return shim.Success(nil)
 }
 
@@ -96,6 +134,6 @@ func main() {
 	fmt.Println(args)
 	z := Paper{Issuer: args[0], Paper: args[1]}
 	fmt.Println(z)
-	fmt.Println(z.compositeKey())
+	fmt.Println(compositeKey(z.Issuer, z.Paper))
 
 }
