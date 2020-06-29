@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	sc "github.com/hyperledger/fabric/protos/peer"
@@ -67,10 +66,7 @@ func (s *SmartContract) issuePaper(APIstub shim.ChaincodeStubInterface, args []s
 	// assigned values should make sense, like dates, face value not being negative
 	p := Paper{Issuer: args[0], Paper: args[1], Owner: args[0],
 		Issue: args[2], Maturity: args[3], FaceValue: args[4], CurrentState: isISSUED}
-
 	paperAsBytes, _ := json.Marshal(p)
-	// fmt.Println("issuing ", p)
-	// fmt.Println("key ", compositeKey(p.Issuer, p.Paper))
 	APIstub.PutState(compositeKey(p.Issuer, p.Paper), paperAsBytes)
 
 	return shim.Success(nil)
@@ -81,12 +77,9 @@ func (s *SmartContract) redeemPaper(APIstub shim.ChaincodeStubInterface, args []
 		return shim.Error("Incorrect number of arguments. Expecting 3: issuer, paper, redeeming owner")
 	}
 	key := compositeKey(args[0], args[1])
-	// fmt.Println("buying ", args)
-	// fmt.Println("key", key)
 	paperAsBytes, _ := APIstub.GetState(key) //TODO err handling
 	p := Paper{}
 	json.Unmarshal(paperAsBytes, &p)
-	fmt.Println(p)
 	if p.Owner != args[2] {
 		return shim.Error("Expected owner: " + args[2] + " actual: " + p.Owner)
 	}
@@ -105,12 +98,9 @@ func (s *SmartContract) buyPaper(APIstub shim.ChaincodeStubInterface, args []str
 		return shim.Error("Incorrect number of arguments. Expecting 4: issuer, paper, owner, new owner")
 	}
 	key := compositeKey(args[0], args[1])
-	fmt.Println("buying ", args)
-	fmt.Println("key", key)
 	paperAsBytes, _ := APIstub.GetState(key) //TODO err handling
 	p := Paper{}
 	json.Unmarshal(paperAsBytes, &p)
-	fmt.Println(p)
 	if p.Owner != args[2] {
 		return shim.Error("Expected owner: " + args[2] + " actual: " + p.Owner)
 	}
@@ -122,18 +112,8 @@ func (s *SmartContract) buyPaper(APIstub shim.ChaincodeStubInterface, args []str
 }
 
 func main() {
-	x := Paper{"gogi", "00001", "gogi", "2020-01-01", "2020-07-01", "100", "ISSUED"}
-	fmt.Println(x)
-	j, err := json.Marshal(x)
-	fmt.Println(j, err)
-	os.Stdout.Write(j)
-	y := Paper{}
-	json.Unmarshal(j, &y)
-	fmt.Println("\nyo", y)
-	args := []string{"mogi", "00002", "mogi", "2020-01-01", "2020-09-01", "200", "ISSUED"}
-	fmt.Println(args)
-	z := Paper{Issuer: args[0], Paper: args[1]}
-	fmt.Println(z)
-	fmt.Println(compositeKey(z.Issuer, z.Paper))
-
+	err := shim.Start(new(SmartContract))
+	if err != nil {
+		fmt.Printf("Error starting Simple chaincode: %s", err)
+	}
 }
